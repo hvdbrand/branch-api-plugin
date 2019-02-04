@@ -56,6 +56,7 @@ import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.View;
 import hudson.model.listeners.SaveableListener;
+import hudson.triggers.Trigger;
 import hudson.util.DescribableList;
 import hudson.util.StreamTaskListener;
 import java.io.File;
@@ -188,6 +189,17 @@ public final class OrganizationFolder extends ComputedFolder<MultiBranchProject<
         } catch (ANTLRException x) {
             throw new IllegalStateException(x);
         }
+    }
+
+    /**
+     * Gets the specific trigger, or null if the property is not configured for this job.
+     */
+    public <T extends Trigger> T getTrigger(Class<T> clazz) {
+        for (Trigger p : getTriggers().values()) {
+            if(clazz.isInstance(p))
+                return clazz.cast(p);
+        }
+        return null;
     }
 
     /**
@@ -1425,7 +1437,12 @@ public final class OrganizationFolder extends ComputedFolder<MultiBranchProject<
                                 project.setOrphanedItemStrategy(getOrphanedItemStrategy());
                                 project.getSourcesList().addAll(createBranchSources());
                                 try {
-                                    project.addTrigger(new PeriodicFolderTrigger("1d"));
+                                    PeriodicFolderTrigger trigger = getTrigger(PeriodicFolderTrigger.class);
+                                    if (trigger != null) {
+                                        project.addTrigger(new PeriodicFolderTrigger(trigger.getInterval()));
+                                    } else {
+                                        project.addTrigger(new PeriodicFolderTrigger("1d"));
+                                    }
                                 } catch (ANTLRException x) {
                                     throw new IllegalStateException(x);
                                 }
